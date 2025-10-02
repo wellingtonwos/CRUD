@@ -1,0 +1,72 @@
+import java.sql.SQLException;
+/* Main.java
+public class Main {
+    public static void main(String[] args) {
+        UsuarioDAO usuarioDAO = new UsuarioDAO();
+
+        try {
+            // --- C: Create (Criar) ---
+            Usuario novoUsuario = new Usuario(); // O ID não é definido aqui!
+            novoUsuario.setNome("Wellington");
+            novoUsuario.setEmail("wellington@example.com");
+
+            usuarioDAO.criar(novoUsuario); // O DAO vai inserir e preencher o ID no objeto.
+
+            // Agora o objeto 'novoUsuario' já tem o ID gerado pelo banco!
+            System.out.println("Usuário criado com sucesso com o ID: " + novoUsuario.getId());
+
+            // ... o resto do seu código continua igual ...
+
+        } catch (SQLException e) {
+            System.err.println("Erro ao acessar o banco de dados: " + e.getMessage());
+            e.printStackTrace(); // Bom para depuração
+        }
+    }
+}
+
+UsuarioDAO.java
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class UsuarioDAO {
+
+    // ... (seus outros métodos como buscarTodos, atualizar, etc.)
+
+    public void criar(Usuario usuario) throws SQLException {
+        // O comando SQL não inclui o 'id', pois o banco de dados vai gerá-lo.
+        String sql = "INSERT INTO usuarios (nome, email) VALUES (?, ?)";
+
+        // Bloco try-with-resources para garantir que a conexão seja fechada.
+        try (Connection conn = Conexao.getConnection(); // Supõe que você tenha uma classe para conectar
+
+             // A MÁGICA ACONTECE AQUI!
+             // Preparamos o statement pedindo para retornar as chaves geradas.
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            // Define os valores para os placeholders (?)
+            pstmt.setString(1, usuario.getNome());
+            pstmt.setString(2, usuario.getEmail());
+
+            // Executa a inserção
+            int affectedRows = pstmt.executeUpdate();
+
+            // Verifica se a inserção funcionou
+            if (affectedRows > 0) {
+                // Recupera o conjunto de chaves geradas
+                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                    // Verifica se o banco retornou alguma chave
+                    if (generatedKeys.next()) {
+                        // Pega o ID gerado (geralmente na primeira coluna)
+                        // E ATUALIZA O SEU OBJETO JAVA com o ID do banco!
+                        usuario.setId(generatedKeys.getInt(1));
+                    }
+                }
+            }
+        }
+    }
+}
+
